@@ -4,14 +4,16 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage("symbolName") var symbolName = "custom.folder.fill.badge.sparkles"
 
-    @AppStorage("luminanceToAlpha") var luminanceToAlpha: Bool = true
+    @AppStorage("luminanceToAlpha") var luminanceToAlpha = true
 
     @State var customIcon: Image?
+    
+    private var isCustomIcon: Bool {
+        customIcon != nil
+    }
 
     var body: some View {
         VStack(spacing: 16) {
-            let color = Color(red: 0.21, green: 0.62, blue: 0.88)
-
             let content = Image(ImageResource.folder512)
                 .alignmentGuide(.firstTextBaseline) { d in
                     d[.bottom] - d.height * 0.375
@@ -55,7 +57,7 @@ struct ContentView: View {
                     .font(.system(size: 180))
                     .offset(y: 25)
                     .foregroundStyle(
-                        color
+                        Color.folder
                             .shadow(.inner(color: .black.opacity(0.1), radius: 0.5, y: 0.5))
                             .shadow(.drop(color: .white.opacity(0.4), radius: 1, y: 1))
                     )
@@ -85,20 +87,22 @@ struct ContentView: View {
                                 NSPasteboard.general.writeObjects([NSImage(cgImage: cgImage, size: .init(width: 1024, height: 1024))])
                             }
 
-                            if customIcon != nil {
-                                Divider()
-
+                            Section {
                                 Toggle("Use Luminance as Alpha Channel", isOn: $luminanceToAlpha)
 
                                 Button("Clear Custom Icon") {
                                     customIcon = nil
                                 }
                             }
+                            .disabled(!isCustomIcon)
                         }
                 }
             }
-            .dropDestination(for: Image.self) { items, _ in
-                customIcon = items.first
+            .dropDestination(for: URL.self) { urls, _ in
+                guard let url = urls.first,
+                      let nsImage = NSImage(contentsOf: url) else { return false }
+                
+                customIcon = Image(nsImage: nsImage)
 
                 return true
             }
@@ -110,7 +114,7 @@ struct ContentView: View {
                 }
                 .padding(8)
             }
-            .disabled(customIcon != nil)
+            .disabled(isCustomIcon)
 
             HStack {
                 Label("[How to change icons for folders on macOS](https://support.apple.com/guide/mac-help/change-icons-for-files-or-folders-on-mac-mchlp2313/mac)", systemImage: "info.circle.fill")
